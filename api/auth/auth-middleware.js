@@ -20,7 +20,7 @@ async function checkUsernameFree(req, res, next) {
         res.status(422).json("Username taken")
     }
 }catch(err){
-    res.status(500).json(`Server error: ${err}`)
+    next(err)
 }
 }
 
@@ -39,14 +39,14 @@ async function checkUsernameExists(req, res, next) {
         res.status(401).json("Invalid credentials")
     }
 }catch(err){
-    res.status(500).json(`Server error: ${err}`)
+    next(err)
 
 }
 }
 
 
 function checkPasswordLength(req, res, next) {
-  if(req.body.password.length < 3){
+  if(req.body.password.length < 3 || !req.body.password){
     res.status(422).json("Password must be longer than 3 chars")
   }else{
     next()
