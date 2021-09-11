@@ -8,35 +8,47 @@ const {
     checkPasswordLength
 } =require('./auth-middleware')
 
-router.post('/register', checkPasswordLength, checkUsernameFree, async (req, res)=>{
-  try{
-    const hash = bcrypt.hashSync(req.body.password, 10)
-    const newUser = await User.add({username: req.body.username, password:hash})
-    res.status(200).json(newUser)
-  }catch(err){
-    res.status(500).json({message: err.message})
-  }
+
+router.post('/register', checkPasswordLength, checkUsernameFree, async (req, res, next)=>{
+  const { username, password } = req.body
+  const hash = bcrypt.hashSync(password, 8)
+
+  User.add({username, password: hash})
+    .then(saved =>{
+      res.status(201).json(saved)
+    })
+    .catch(next)
+
 })
 
 
 router.post('/login', checkUsernameExists, (req, res)=>{
-  try{
-    if(req.body.username){
-      res.json(`Welcome ${req.body.username}!`)
+  try {
+    const verified = bcrypt.compareSync(req.body.password, req.userData.password)
+    if(verified){
+      req.session.user = req.userData
+      res.status(200).json({message:`Welcome ${req.userData.username}`})
+    }else{
+      res.status(401).json({message:'Invalid Credentials'})
     }
-  }catch(err){
-    res.status(500).json({message: err.message})
+  } catch (err) {
+    res.status(500).json({ message: err.message})
   }
 })
 
 
 
-  router.get('/logout', (req, res)=>{
-    if(req.session){
-      req.session.destroy
-      res.json("logged out")
+  router.get('/logout', (req, res, next)=>{
+    if(req.session.user){
+      req.session.destroy( err =>{
+        if(err){
+          next(err)
+        }else{
+          res.status(200).json({message:'logged out'})
+        }
+      })
     }else{
-      res.json("no session")
+      res.status(200).json({message: "no session"})
     }
   })
 
